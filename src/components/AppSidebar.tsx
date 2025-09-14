@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -40,18 +40,20 @@ function SidebarPane({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       <SidebarHeader>
-        <div className="flex items-center gap-3 px-2">
-          <Avatar>
-            <AvatarImage
-              src="https://avatars.githubusercontent.com/u/3921357?v=4"
-              alt="Kim Lam"
-            />
-            <AvatarFallback>KL</AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="text-sm font-semibold">Kim Lam</div>
+        <Link to="/" className="block">
+          <div className="flex items-center gap-3 px-2">
+            <Avatar>
+              <AvatarImage
+                src="https://avatars.githubusercontent.com/u/3921357?v=4"
+                alt="Kim Lam"
+              />
+              <AvatarFallback>KL</AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="text-sm font-semibold">Kim Lam</div>
+            </div>
           </div>
-        </div>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

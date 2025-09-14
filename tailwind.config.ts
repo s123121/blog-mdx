@@ -17,7 +17,7 @@ export default {
     extend: {
       fontFamily: {
         sans: [
-          "DM Sans",
+          "Lexend",
           "ui-sans-serif",
           "system-ui",
           "-apple-system",
