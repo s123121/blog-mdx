@@ -52,7 +52,7 @@ export default function Home() {
               <span className="sr-only">GitHub</span>
             </a>
           </Button>
-          <a href="https://pub-d825afddbdb94697b79407262cad8e4d.r2.dev/KimLam_25091401.pdf">
+          <a href="https://pub-d825afddbdb94697b79407262cad8e4d.r2.dev/KimLam_25091402.pdf">
             <span className="ml-2 underline">My CV</span>
           </a>
         </div>
