@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import mdx from "@mdx-js/rollup";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkMdxFrontmatter from "remark-mdx-frontmatter";
+import remarkGfm from "remark-gfm";
 import { fileURLToPath, URL } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -33,6 +34,7 @@ export default defineConfig(() => {
         remarkFrontmatter,
         // Cast to any to work around upstream type incompatibility between remark-mdx-frontmatter and mdx plugin's expected Plugin signature
         [remarkMdxFrontmatter as any, { name: "frontmatter" }],
+        remarkGfm,
       ],
     }),
   ];

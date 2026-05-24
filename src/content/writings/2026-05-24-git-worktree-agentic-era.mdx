@@ -1,0 +1,260 @@
+---
+title: "Your AI Agent Shouldn't Share Your Working Directory"
+date: 2026-05-24
+description: How Git worktrees keep hotfixes, reviews, feature work, and agent tasks isolated without stashing.
+tags: [Developer Experience, Git, AI, Workflows]
+---
+
+# Your AI Agent Shouldn't Share Your Working Directory
+
+Imagine you are deep in a refactor. Your working directory is dirty, half-written tests are failing, and your editor is full of files you still need in your head.
+
+Then a production issue comes in.
+
+The usual move is familiar: `git stash`, switch to `main`, patch the bug, push the fix, then `git stash pop` and hope nothing weird happens. Sometimes it works. Sometimes your dev server is gone, your database state no longer matches the branch, and it takes half an hour just to remember where you were.
+
+Git worktrees are a better default for this kind of interruption. They let you keep multiple branches checked out in separate directories, with separate editor windows, terminals, dependencies, and runtime state, while still sharing one Git history.
+
+That was already useful for human context switching. It matters even more when AI agents are doing real work in parallel.
+
+---
+
+## What Is a Git Worktree?
+
+At its core, a Git worktree allows a single Git repository to have **multiple working directories** checked out to different branches at the same time.
+
+When you run `git init` or `git clone`, Git creates what is called the **main worktree**. All your files are contained there, along with the `.git` directory.
+
+By using `git worktree add`, you can create **linked worktrees**. These are separate physical folders on your machine, each checked out to a different branch, but all pointing back to the _same_ shared `.git` database.
+
+```
+                  ┌──────────────────────────────┐
+                  │        Main Worktree         │
+                  │   Path: /projects/my-app/    │
+                  │   Active Branch: [feature-A] │
+                  └──────────────┬───────────────┘
+                                 │
+                   (Shares .git/ object database)
+                                 │
+         ┌───────────────────────┼───────────────────────┐
+         ▼                       ▼                       ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Worktree 1    │     │   Worktree 2    │     │   Worktree 3    │
+│  Path: ../auth  │     │ Path: ../stripe │     │ Path: ../hotfix │
+│ Branch: [auth]  │     │ Branch: [stripe]│     │Branch: [hotfix] │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+Creating a linked worktree is fast, and it does not duplicate your entire Git history. It only needs another copy of the working directory files.
+
+---
+
+## Worktree vs. Stash
+
+To understand why worktrees are useful, compare them with the usual context-switching tool: `git stash`.
+
+### Why Git Stash Is a Context-Switching Trap
+
+We’ve all done it:
+
+```bash
+$ git stash
+$ git checkout main
+# ... fix the critical bug ...
+$ git checkout feature-branch
+$ git stash pop
+```
+
+This works for simple, five-minute fixes. But `git stash` has limits:
+
+1. **No parallelism**: You cannot run the dev server for `main` and your feature branch at the same time from one working directory.
+2. **State disruption**: Stashing and popping can fail when untracked files or conflicting changes are involved.
+3. **Local database and cache churn**: If branches have different migrations or dependencies (`node_modules`), switching back and forth can mean re-running migrations, clearing caches, or reinstalling packages.
+4. **Mental context loss**: You lose your editor state, terminal setup, and open file layout.
+
+---
+
+## How It Works Internally
+
+The plumbing is simple, and it explains why worktrees are lightweight.
+
+The **main worktree** owns the `.git/` folder. This directory contains the full object database, refs, hooks, and configuration.
+
+When you create a **linked worktree** (for example, in `../auth`), Git does two things:
+
+1. It creates a directory inside the main repository's `.git` folder: `.git/worktrees/auth/`. This directory stores the linked worktree's specific `HEAD`, `index` (staging area), and `logs`.
+2. It creates a simple plain-text `.git` file in the linked worktree directory (`../auth/.git`) that contains a single line pointing back to the main repository:
+   ```text
+   gitdir: /Users/ko.ol/dev/blog/.git/worktrees/auth
+   ```
+
+Because they share the same object database, a `git fetch` run inside _any_ worktree updates the refs for the others too. No network duplication, no separate histories to keep in sync.
+
+---
+
+## Why Worktrees Matter for AI Agents
+
+AI agents make the old single-directory workflow feel cramped.
+
+When you ask an agent to refactor a payment schema, write tests, or chase a bug across the codebase, it may touch dozens of files. That is fine if the agent is the only thing using the workspace. It is painful if you also want to keep coding, run the app, or start another agent on a separate task.
+
+A worktree gives each task its own filesystem boundary. The agent can build, test, fail, retry, and leave behind a reviewable diff without disturbing your main workspace.
+
+### 1. Claude Code: Native Worktree Support
+
+Tools like **Claude Code** have built-in support for worktrees. When you want to delegate a task to Claude without disrupting your own workspace, you can launch it with the `--worktree` (or `-w`) flag:
+
+```bash
+# Terminal 1: You are working on feature-A in your main folder
+$ npm run dev
+
+# Terminal 2: Start Claude in an isolated, auto-managed worktree
+$ claude --worktree feature-auth
+# Prompt: "Implement OAuth2 login flow per specs/auth.md"
+```
+
+Claude will:
+
+1. Create a linked worktree inside `.claude/worktrees/feature-auth/`.
+2. Check out a new branch.
+3. Perform the work, run tests, and verify the changes in that isolated folder.
+4. Prompt you to commit, push, or clean up when finished.
+
+If no changes are made, Claude automatically removes the worktree and branch on exit. Your main workspace stays clean.
+
+> **A note on nested worktrees:**
+> Claude Code defaults to nesting its worktrees inside `.claude/worktrees/` under your current repository directory. That is convenient for Claude-managed tasks, but it is not the layout I would choose for manual worktrees or custom workflows.
+>
+> Creating worktrees _inside_ your active project directory introduces several friction points:
+>
+> 1. **IDE and indexing noise:** Editors like Cursor or VS Code scan, index, and watch files in your project workspace. Nested folders, even when gitignored, can leak into search results and slow down file watching.
+> 2. **Build and linter confusion:** Tools like ESLint, TypeScript, or Tailwind often walk up directory trees to find configuration. An active repository nested inside another repository can produce surprising config resolution behavior.
+> 3. **Accidental cleanup:** Running broad clean commands like `git clean -fdx` inside your main folder can wipe out nested worktrees, leaving stale metadata and broken pointers in `.git/worktrees/`.
+>
+> **Best practice:** For manual worktrees, check them out as sibling directories **outside your main folder** (for example, `../feature-auth` instead of `./feature-auth`). That keeps active workspaces separate and avoids most editor noise.
+
+### 2. Cursor Subagents and Worktrees
+
+When using agent tools within Cursor, isolation matters. If subagents run in their own worktrees:
+
+- **Parallel builds**: Agent A can compile code in its own folder while you write code in yours.
+- **Independent test environments**: Agent B can run a slow integration test suite without blocking your development loop.
+- **Smaller conflict surface**: You merge only after the agent's work has been reviewed.
+
+---
+
+## Worktree Gotchas
+
+Before you start using worktrees everywhere, there are a few details worth knowing:
+
+### Gotcha 1: The Same-Branch Restriction
+
+Git **does not allow** you to have the same branch checked out in two different worktrees.
+
+```bash
+$ git worktree add ../duplicate-main main
+fatal: 'main' is already checked out at '/Users/ko.ol/dev/blog'
+```
+
+_Solution_: Use the `-b` flag to create a new branch, or check out a specific commit in detached HEAD mode with the `-d` flag:
+
+```bash
+$ git worktree add -d ../experiment HEAD
+```
+
+### Gotcha 2: The Stash Is Global
+
+Because all worktrees share the same `.git` repository, `git stash` operations are global. A stash created in worktree A is visible, and can be popped, in worktree B. Keep this in mind if you or your agents still use stash.
+
+### Gotcha 3: Gitignored Files Do Not Exist
+
+This is the most common point of friction. When you create a new worktree, Git checks out your tracked files. It does **not** copy gitignored files such as `.env`, `.env.local`, config secrets, or `node_modules/`.
+
+Your build will fail instantly.
+
+_Solutions_:
+
+- **For Claude Code**: List the gitignored files you want copied in a `.worktreeinclude` file at the root of your project. Claude will copy these files into newly created worktrees.
+  ```text
+  # .worktreeinclude
+  .env
+  .env.local
+  config/secrets.json
+  ```
+- **For manual worktrees**: Create a small setup script, such as `setup-worktree.sh`, that copies `.env` files and runs `npm install` or `pnpm install` in the new directory.
+
+### Gotcha 4: Port Collisions
+
+If you are running a web app on port `3000` in your main worktree, starting another dev server in a linked worktree may fail with an `EADDRINUSE` error. Configure local servers to pick available ports, or set a different port in the linked worktree's `.env`.
+
+### Gotcha 5: Manual Folder Deletion
+
+Avoid deleting a worktree folder manually, for example with `rm -rf ../my-worktree`.
+
+If you do, Git's internal metadata in `.git/worktrees/` will still think the worktree exists, and you won't be able to check out that branch elsewhere.
+
+_Solution_: Use the official command:
+
+```bash
+$ git worktree remove ../my-worktree
+```
+
+If you did accidentally delete a folder manually, run this to clean up the stale metadata:
+
+```bash
+$ git worktree prune
+```
+
+---
+
+## Practical Worktree Workflows
+
+Here are two worktree workflows my team uses often:
+
+### Workflow 1: The Emergency Hotfix
+
+You are in the middle of a feature when a production bug comes in.
+
+```bash
+# 1. Create a hotfix worktree pointing to 'main'
+$ git worktree add -b hotfix/critical-bug ../hotfix main
+
+# 2. Go to the hotfix directory
+$ cd ../hotfix
+
+# 3. Apply the fix, run tests, and push
+$ git commit -am "fix: correct payment gateway null check"
+$ git push -u origin hotfix/critical-bug
+
+# 4. Return to your feature and cleanly remove the hotfix directory
+$ cd ../project
+$ git worktree remove ../hotfix
+```
+
+Your original code, open files, and editor state in `/project` never moved.
+
+### Workflow 2: Isolated Code Review
+
+A colleague wants you to test their PR locally.
+
+```bash
+# 1. Fetch the remote branches
+$ git fetch origin
+
+# 2. Check out their PR branch into a separate folder
+$ git worktree add ../review-pr origin/feature-login
+
+# 3. Open it in a separate VS Code window, run it, test it, and close it when done
+$ code ../review-pr
+$ git worktree remove ../review-pr
+```
+
+---
+
+## Conclusion
+
+`git stash` is fine for small interruptions. But once you are juggling hotfixes, reviews, feature branches, and AI-assisted tasks, a single working directory becomes the bottleneck.
+
+Worktrees give each task its own place to run while keeping Git history shared and lightweight. Your editor state stays put. Your dev servers can run side by side. Your agents can work without trampling your branch.
+
+Stop stashing every interruption. Put it in a worktree.
