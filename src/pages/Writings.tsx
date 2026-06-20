@@ -25,12 +25,15 @@ type Post = {
 };
 
 function groupByYear(posts: Post[]): Record<string, Post[]> {
-  return posts.reduce((acc, post) => {
-    const year = new Date(post.date).getFullYear().toString();
-    acc[year] ||= [];
-    acc[year].push(post);
-    return acc;
-  }, {} as Record<string, Post[]>);
+  return posts.reduce(
+    (acc, post) => {
+      const year = new Date(post.date).getFullYear().toString();
+      acc[year] ||= [];
+      acc[year].push(post);
+      return acc;
+    },
+    {} as Record<string, Post[]>,
+  );
 }
 
 export default function Writings() {
@@ -64,29 +67,35 @@ export default function Writings() {
               <Link
                 key={post.slug}
                 to={`/writings/${post.slug}`}
-                className="flex items-center justify-between gap-4 p-3 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="block p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50"
               >
-                <div>
-                  <time className="text-sm text-slate-500 dark:text-slate-400">
-                    {new Date(post.date).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "2-digit",
-                    })}
-                  </time>
-                  <div className="font-medium">{post.title}</div>
-                  {post.description && (
-                    <div className="text-sm text-slate-600 dark:text-slate-300">
-                      {post.description}
-                    </div>
-                  )}
+                <time className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  {new Date(post.date).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "2-digit",
+                  })}
+                </time>
+                <div className="mt-1 font-semibold leading-snug">
+                  {post.title}
                 </div>
-                <div className="flex items-center gap-2">
-                  {post.tags?.slice(0, 3).map((t) => (
-                    <Badge variant="outline" key={t}>
-                      {t}
-                    </Badge>
-                  ))}
-                </div>
+                {post.tags && post.tags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    {post.tags.slice(0, 3).map((t) => (
+                      <Badge
+                        variant="secondary"
+                        key={t}
+                        className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                      >
+                        {t}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {post.description && (
+                  <div className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                    {post.description}
+                  </div>
+                )}
               </Link>
             ))}
           </div>

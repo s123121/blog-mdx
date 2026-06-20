@@ -1,33 +1,38 @@
-import { useLocation, Link } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { useLocation, Link } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 
-type PostModule = { frontmatter: { title?: string } }
-const postModules = import.meta.glob<PostModule>('@/content/writings/*.mdx', { eager: true })
+type PostModule = { frontmatter: { title?: string } };
+const postModules = import.meta.glob<PostModule>("@/content/writings/*.mdx", {
+  eager: true,
+});
 const titleBySlug = Object.fromEntries(
   Object.entries(postModules).map(([path, mod]) => [
-    path.split('/').pop()!.replace(/\.mdx$/, ''),
-    mod.frontmatter?.title || '',
-  ])
-)
+    path
+      .split("/")
+      .pop()!
+      .replace(/\.mdx$/, ""),
+    mod.frontmatter?.title || "",
+  ]),
+);
 
 function labelFor(segment: string, index: number, all: string[]) {
-  if (segment === '') return 'Home'
-  if (segment === 'writings' && index === 1) return 'Writings'
-  if (segment === 'projects' && index === 1) return 'Projects'
-  if (all[1] === 'writings' && index === 2) {
-    return titleBySlug[segment] || segment.replace(/-/g, ' ')
+  if (segment === "") return "Home";
+  if (segment === "writings" && index === 1) return "Writings";
+  if (segment === "projects" && index === 1) return "Projects";
+  if (all[1] === "writings" && index === 2) {
+    return titleBySlug[segment] || segment.replace(/-/g, " ");
   }
-  return segment.replace(/-/g, ' ')
+  return segment.replace(/-/g, " ");
 }
 
 export default function Breadcrumbs() {
-  const { pathname } = useLocation()
-  const parts = pathname.split('/').filter((_, i) => i === 0 || !!_)
+  const { pathname } = useLocation();
+  const parts = pathname.split("/").filter((_, i) => i === 0 || !!_);
 
   const items = parts.map((part, idx) => {
-    const to = parts.slice(0, idx + 1).join('/') || '/'
-    return { to, label: labelFor(part, idx, parts) }
-  })
+    const to = parts.slice(0, idx + 1).join("/") || "/";
+    return { to, label: labelFor(part, idx, parts) };
+  });
 
   return (
     <nav aria-label="Breadcrumb" className="text-sm text-slate-600">
@@ -40,12 +45,11 @@ export default function Breadcrumbs() {
                 {item.label}
               </Link>
             ) : (
-              <span className="font-medium text-slate-900">{item.label}</span>
+              <span className="font-medium text-slate-600">{item.label}</span>
             )}
           </li>
         ))}
       </ol>
     </nav>
-  )
+  );
 }
-

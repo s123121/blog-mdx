@@ -1,0 +1,95 @@
+---
+title: "Tôi gõ đúng 1 dòng \"Làm luôn cho nóng\", 2 tiếng sau Website đã lên Production."
+date: 2026-06-20
+description: Ghi chép sau một buổi chiều dùng Fable 5 để dựng daugiacong.com, và vài suy nghĩ về tương lai của nghề lập trình.
+tags: [Software Development, AI]
+---
+
+# Tôi gõ đúng 1 dòng "Làm luôn cho nóng", 2 tiếng sau Website đã lên Production.
+
+*Ghi chép sau một buổi chiều dùng Fable 5 để dựng [daugiacong.com](https://daugiacong.com), và vài suy nghĩ về tương lai của nghề lập trình.*
+
+---
+
+## 1. Bắt đầu bằng một câu hỏi "lười"
+
+20h37 tối một ngày tháng Sáu, ngay trước thời điểm Fable bị ban, tôi quăng cho Fable 5 một câu hỏi đúng chất lười biếng:
+
+> *Tôi muốn làm một trang tổng hợp thông tin đấu giá trên toàn quốc. Liệu có khả thi không?*
+
+Tôi không kèm tài liệu, không mô tả thị trường, cũng chẳng chỉ định nguồn dữ liệu. Đơn giản vì chính tôi cũng chưa biết bắt đầu từ đâu. Tôi đoán nó sẽ trả lời kiểu ba phải như "cũng tùy" hoặc "cần nghiên cứu thêm". 
+
+Nhưng không. Nó tự đi research xem có đối thủ nào tương tự chưa, tự tra cứu hệ sinh thái đấu giá tại Việt Nam, rồi lôi về một chi tiết mà ngay cả tôi, người Việt Nam chính gốc cũng không hề biết:
+
+> *Theo Luật Đấu giá tài sản sửa đổi 2024 (có hiệu lực từ 01/01/2025), mọi tổ chức đấu giá **bắt buộc** phải đăng thông báo công khai trên Cổng Đấu giá tài sản quốc gia dgts.moj.gov.vn...*
+
+Chưa dừng lại ở đó, nó "mổ xẻ" luôn cái cổng ấy: Render phía client bằng Angular, giao diện đậm chất hành chính, không có hệ thống cảnh báo (alert), cũng chẳng có lịch sử giá. Dữ liệu có sẵn nhưng trải nghiệm tìm kiếm cho người dùng cực kỳ thô sơ. 
+
+Phần khảo sát khả thi mà bình thường tôi phải mất nửa ngày Google, nó làm xong trong vài phút, ngay lúc tôi còn đang loay hoay chưa biết bắt đầu từ đâu.
+
+---
+
+## 2. "Làm luôn cho nóng" — và nó làm thật
+
+Tôi gõ tiếp, nửa đùa nửa thật:
+
+> *Làm luôn cho nóng, tôi muốn có một bản MVP để kiểm chứng ý tưởng này.*
+
+Kèm theo đó là một dòng mô tả "vỏn vẹn" đúng một câu: *Một trang web đấu giá hoàn chỉnh, tổng hợp đa nguồn, crawl dữ liệu hàng ngày, báo qua email, trang chủ phải bắt mắt, nút tìm kiếm nổi bật, "đủ hấp dẫn để người dùng sẵn sàng xuống tiền hoặc quay lại mỗi ngày".*
+
+Đó là toàn bộ spec (đặc tả kỹ thuật). Tôi để máy đó tự chạy, còn mình thì đi... xem YouTube.
+
+Lúc quay lại, Fable vẫn đang hì hục làm việc. Nó chẳng thèm hỏi tôi dùng framework gì hay deploy ở đâu, cứ thế tự quyết và tự thực hiện. Mãi sau đọc lại log, tôi mới bàng hoàng về khối lượng công việc nó đã xử lý:
+
+- **65 file** mới được tạo ra.
+- **121 lệnh** terminal được thực thi.
+- **14 task** tự chia nhỏ.
+- **3 sub-agent** (đại lý phụ) được nó "đẻ" ra để xử lý song song.
+
+Và đây không phải là một landing page dựng tạm cho vui. Nó là một sản phẩm hoàn chỉnh:
+- **Crawler "xịn":** Gọi JSON API từ Bộ Tư pháp, sàn đấu giá Bộ Công an, và parse luôn HTML trang phát mại của BIDV.
+- **Tìm kiếm thông minh:** Hỗ trợ tiếng Việt không dấu (gõ "dat tho cu" vẫn ra "đất thổ cư") chạy trên FTS5.
+- **Full-stack:** Trang chủ, trang tìm kiếm, chi tiết tài sản, bộ lọc theo tỉnh thành, loại hình và khoảng giá.
+- **Cấu hình chuẩn:** Sẵn sàng để deploy ngay lập tức.
+
+Suốt buổi, tôi chỉ chen vào vài câu vụn vặt: *"Font có chân khó nhìn quá, đổi cái khác đi"*, hay *"Còn nguồn dữ liệu nào nữa không?"*. Tôi không còn là người cầm lái, mà giống như một vị khách ngồi ghế phụ, thỉnh thoảng nhắc tài xế Claude bẻ lái đúng hướng.
+
+22h46, website chính thức lên sóng (live). Server tự động kéo về khoảng 7.000 tin đấu giá, và một con cron-job được thiết lập để cứ 6h sáng lại cập nhật tin mới. Đúng hai tiếng đồng hồ cho một quy trình từ ý tưởng đến production.
+
+---
+
+## 3. Ba bài học đắt giá từ một buổi tối
+
+### 1. "One-shot" không còn là thuật ngữ marketing
+Trước đây, tôi nghĩ dùng AI code là phải "mớm" đủ context, chẻ nhỏ việc, canh chừng từng bước vì hở ra là nó lạc đề. AI khi đó giống như dev quèn gõ phím nhanh.
+
+Lần này thì khác. Khoảng cách giữa "Tôi có ý tưởng" và "Ý tưởng đang live rồi kìa" nơi mà 90% các dự án hay ho thường bị chết yểu vì ngại làm đã được thu hẹp lại gần như bằng không. AI bây giờ là một kiến trúc sư thực thụ.
+
+### 2. Đơn vị đo tốc độ MVP giờ là "giờ", không phải "tuần"
+Dựng web, crawl dữ liệu đa nguồn, deploy hệ thống... trước đây là chuyện của vài tuần ròng rã hoặc phải thuê cả một team. Giờ đây, nó gói gọn trong một buổi tối.
+
+Cái giá của việc "sai" đã rẻ đi rất nhiều. Tôi không còn phải ngồi đoán xem ý tưởng này có đáng làm hay không. Cứ dựng nó lên trong vài tiếng, hay thì mài tiếp, dở thì bỏ, chẳng mất mát gì nhiều.
+
+### 3. Tương lai của dân lập trình: Gu và Khả năng điều phối (Harnessing)
+Đây là điều làm tôi trăn trở nhất. Nếu máy móc có thể tự khảo sát, tự code, tự đẩy lên mạng, thì lập trình viên còn lại gì? 
+
+Cả buổi tối đó, tôi không viết một dòng code nào. Giá trị tôi đóng góp nằm ở hai thứ: **Gu** và **Cách vận hành Agent**.
+
+*   **Về "Gu":** Đó là khả năng đưa ra quyết định đánh đổi. Tôi chọn SQLite thay vì Postgres để tinh gọn cho MVP, chọn một stack quen thuộc để dễ bảo trì hơn là một stack "sang chảnh". AI có thể tạo ra output ổn, nhưng chỉ con người mới biết chỗ nào là generic (nhạt nhòa), chỗ nào thiếu điểm nhấn, hay font chữ nào thì "vừa mắt" người dùng Việt.
+*   **Về khả năng điều phối (Agent Harnessing):** Làm việc với Agent đã trở thành một kỹ năng độc lập. Tôi không "prompt cho khéo" mà là "dựng môi trường" (harness) cho Agent chạy:
+    *   Dùng `/goal` để giữ Agent luôn bám sát mục tiêu.
+    *   Chia nhỏ session để giữ context sạch, tránh "nói nhảm".
+    *   Thiết lập Long-term memory để nó nhớ các quy tắc riêng (như cách xử lý tiếng Việt).
+    *   Xây dựng Feedback loop: Cho phép nó tự chạy test, tự mở Chrome DevTools để bắt lỗi giao diện trước khi tôi kịp nhìn thấy.
+
+**Kết luận của tôi:** Code bây giờ rất rẻ (Code is cheap). Thứ đắt giá là **Gu** để biết cái gì đáng làm, và **Kỹ năng dựng môi trường** để biến ý chí của mình thành sản phẩm thông qua AI.
+
+---
+
+## Tạm kết
+
+[daugiacong.com](https://daugiacong.com) vẫn đang chạy lầm lũi mỗi ngày. Sáng 6h kéo dữ liệu, thứ Hai gửi newsletter cho người đăng ký. Một sản phẩm thật, bắt đầu từ một "câu hỏi lười".
+
+Tôi vẫn chưa hoàn toàn quen với tốc độ khủng khiếp này, nhưng có lẽ chúng ta nên bắt đầu làm quen là vừa. Vì đây mới chỉ là Fable 5.
+
+Cái ý tưởng mà bạn đang ấp ủ trong đầu bấy lâu nay, bây giờ hoàn toàn có thể hiện thực hóa ngay trong chiều nay. Đừng đợi nữa!
